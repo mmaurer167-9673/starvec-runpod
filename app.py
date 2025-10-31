@@ -1,5 +1,4 @@
-from fastapi import FastAPI, UploadFile, File, HTTPException, Depends
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi import FastAPI, UploadFile, File, HTTPException
 from transformers import AutoModelForCausalLM
 import torch
 from PIL import Image
@@ -7,16 +6,6 @@ import io
 import os
 
 app = FastAPI()
-security = HTTPBearer()
-
-# For Serverless, we need to handle missing env vars gracefully
-API_KEY = os.environ.get("API_KEY", "default-secret-key-change-me")
-HF_TOKEN = os.environ.get("HUGGING_FACE_HUB_TOKEN", None)
-
-def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
-    if credentials.credentials != API_KEY:
-        raise HTTPException(status_code=401, detail="Invalid API key")
-    return True
 
 # Load model at startup
 model = None
@@ -32,8 +21,8 @@ async def load_model():
             torch_dtype=torch.float16,
             trust_remote_code=True,
             device_map="auto",
-            token=HF_TOKEN
-            use_flash_attention_2=False
+            token=os.environ.get("HUGGING_FACE_HUB_TOKEN", None),
+            use_flash_attention_2=False  # ← FIX: Disable flash attention
         )
         processor = model.model.processor
         model.eval()
@@ -43,10 +32,7 @@ async def load_model():
         raise
 
 @app.post("/predict")
-async def predict(
-    file: UploadFile = File(...),
-    authorized: bool = Depends(verify_token)
-):
+async def predict(file: UploadFile = File(...)):
     if model is None:
         raise HTTPException(status_code=503, detail="Model not loaded")
         
