@@ -23,5 +23,14 @@ COPY app.py .
 # Expose port
 EXPOSE 8000
 
+# Set environment variables
+ENV API_KEY=your-super-secret-key-here
+ENV HUGGING_FACE_HUB_TOKEN=your-hf-token-here
+
+# Start FastAPI instead of Jupyter
+CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8000"]
+# Expose port
+EXPOSE 8000
+
 # Start FastAPI instead of Jupyter
 CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8000"]
