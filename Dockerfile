@@ -1,13 +1,17 @@
 FROM pytorch/pytorch:2.5.1-cuda12.4-cudnn9-devel
 
-# Install ALL system dependencies
+# Install system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     wget git vim build-essential \
     libcairo2 cuda-compiler-12-4 libaio-dev \
     pkg-config libcairo2-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Install starvector and dependencies
+# Copy app files
+WORKDIR /app
+COPY app.py .
+
+# Install starvector
 RUN pip install --upgrade pip \
     && git clone https://github.com/joanrod/star-vector.git /tmp/star-vector \
     && pip install /tmp/star-vector \
@@ -16,21 +20,8 @@ RUN pip install --upgrade pip \
 # Install FastAPI
 RUN pip install fastapi uvicorn pillow
 
-# Create app directory
-WORKDIR /app
-COPY app.py .
-
 # Expose port
 EXPOSE 8000
 
-# Set environment variables
-ENV API_KEY=your-super-secret-key-here
-ENV HUGGING_FACE_HUB_TOKEN=your-hf-token-here
-
-# Start FastAPI instead of Jupyter
-CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8000"]
-# Expose port
-EXPOSE 8000
-
-# Start FastAPI instead of Jupyter
+# Start server
 CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8000"]
