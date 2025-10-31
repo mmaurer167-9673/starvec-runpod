@@ -11,14 +11,24 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 WORKDIR /app
 COPY app.py .
 
-# Install starvector
-RUN pip install --upgrade pip \
-    && git clone https://github.com/joanrod/star-vector.git /tmp/star-vector \
-    && pip install /tmp/star-vector \
-    && rm -rf /tmp/star-vector
+# Install dependencies - use pre-built flash_attn wheel
+RUN pip install --upgrade pip
 
-# Install FastAPI
-RUN pip install fastapi uvicorn pillow
+# Install flash_attn with pre-built wheels (skip CUDA build)
+ENV FLASH_ATTENTION_SKIP_CUDA_BUILD=TRUE
+RUN pip install flash-attn==2.7.3 --no-cache-dir
+
+# Install other dependencies
+RUN pip install torch==2.5.1 torchvision==0.20.1 transformers==4.49.0 accelerate
+RUN pip install pillow fastapi uvicorn
+RUN pip install svgpathtools cairosvg beautifulsoup4 webcolors
+RUN pip install open-clip-torch datasets scikit-image
+RUN pip install sentence-transformers reportlab svglib
+
+# Clone and install star-vector (flash_attn already installed)
+RUN git clone https://github.com/joanrod/star-vector.git /tmp/star-vector
+RUN pip install /tmp/star-vector
+RUN rm -rf /tmp/star-vector
 
 # Expose port
 EXPOSE 8000
