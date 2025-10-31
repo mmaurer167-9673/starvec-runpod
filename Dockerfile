@@ -11,12 +11,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 WORKDIR /app
 COPY app.py .
 
-# Install dependencies - use pre-built flash_attn wheel
+# Install dependencies
 RUN pip install --upgrade pip
 
-# Install flash_attn with pre-built wheels (skip CUDA build)
-ENV FLASH_ATTENTION_SKIP_CUDA_BUILD=TRUE
-RUN pip install flash-attn==2.7.3 --no-cache-dir
+# Install flash_attn with specific pre-built wheel for CUDA 12.4 + PyTorch 2.5
+RUN pip install https://github.com/Dao-AILab/flash-attention/releases/download/v2.7.3/flash_attn-2.7.3+cu124torch2.5cxx11abiTRUE-cp311-cp311-linux_x86_64.whl
 
 # Install other dependencies
 RUN pip install torch==2.5.1 torchvision==0.20.1 transformers==4.49.0 accelerate
