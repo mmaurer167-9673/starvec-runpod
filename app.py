@@ -9,38 +9,46 @@ import os
 app = FastAPI()
 security = HTTPBearer()
 
-# Load model at startup
-model = None
-processor = None
-
-# Your API key - set via environment variable
-API_KEY = os.environ.get("API_KEY", "your-secret-key-here")
+# For Serverless, we need to handle missing env vars gracefully
+API_KEY = os.environ.get("API_KEY", "default-secret-key-change-me")
+HF_TOKEN = os.environ.get("HUGGING_FACE_HUB_TOKEN", None)
 
 def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
     if credentials.credentials != API_KEY:
         raise HTTPException(status_code=401, detail="Invalid API key")
     return True
 
+# Load model at startup
+model = None
+processor = None
+
 @app.on_event("startup")
 async def load_model():
     global model, processor
     print("🚀 Loading StarVector model...")
-    model = AutoModelForCausalLM.from_pretrained(
-        "starvector/starvector-1b-im2svg",
-        torch_dtype=torch.float16,
-        trust_remote_code=True,
-        device_map="auto",
-        token=os.environ.get("HUGGING_FACE_HUB_TOKEN", None)
-    )
-    processor = model.model.processor
-    model.eval()
-    print("✅ StarVector model loaded!")
+    try:
+        model = AutoModelForCausalLM.from_pretrained(
+            "starvector/starvector-1b-im2svg",
+            torch_dtype=torch.float16,
+            trust_remote_code=True,
+            device_map="auto",
+            token=HF_TOKEN
+        )
+        processor = model.model.processor
+        model.eval()
+        print("✅ StarVector model loaded!")
+    except Exception as e:
+        print(f"❌ Model loading failed: {e}")
+        raise
 
 @app.post("/predict")
 async def predict(
     file: UploadFile = File(...),
     authorized: bool = Depends(verify_token)
 ):
+    if model is None:
+        raise HTTPException(status_code=503, detail="Model not loaded")
+        
     # Read image
     image_data = await file.read()
     image = Image.open(io.BytesIO(image_data)).convert("RGB")
