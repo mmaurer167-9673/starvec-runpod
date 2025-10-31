@@ -33,6 +33,7 @@ async def load_model():
             trust_remote_code=True,
             device_map="auto",
             token=HF_TOKEN
+            use_flash_attention_2=False
         )
         processor = model.model.processor
         model.eval()
